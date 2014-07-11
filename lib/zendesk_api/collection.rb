@@ -369,6 +369,9 @@ module ZendeskAPI
       @response = @client.connection.send(@verb || "get", path) do |req|
         opts = @options.delete_if {|_, v| v.nil?}
 
+        req.options.timeout = 20
+        req.options.open_timeout = 20
+
         req.params.merge!(:include => @includes.join(",")) if @includes.any?
 
         if %w{put post}.include?(@verb.to_s)
