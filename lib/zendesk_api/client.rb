@@ -200,7 +200,7 @@ module ZendeskAPI
       if config.logger.nil? || config.logger == true
         require 'logger'
         config.logger = Logger.new($stderr)
-        config.logger.level = Logger::DEBUG
+        config.logger.level = Logger::INFO
       end
     end
 
