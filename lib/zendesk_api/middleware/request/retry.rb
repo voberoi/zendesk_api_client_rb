@@ -35,7 +35,7 @@ module ZendeskAPI
 
             @logger.debug "(zendesk_api_client) Sending retry request from retry.rb"
             ret = @app.call(original_env)
-            @logger.debug "(zendesk_api_client) Received response to retry request from retry.rb"
+            @logger.debug "(zendesk_api_client) Received response to retry request from retry.rb: #{ret.env[:status]}"
             ret
           else
             response
