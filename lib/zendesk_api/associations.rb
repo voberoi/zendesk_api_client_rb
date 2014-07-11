@@ -111,7 +111,10 @@ module ZendeskAPI
             elsif found = method_missing(association[:name].to_sym)
               wrap_resource(found, association, :include_key => association[:include_key])
             elsif klass.superclass == DataResource && !association[:inline]
-              response = @client.connection.get(instance_association.generate_path(:with_parent => true))
+              response = @client.connection.get(instance_association.generate_path(:with_parent => true)) do |req|
+                 req.options.timeout = 20
+                 req.options.open_timeout = 20
+              end
               klass.new(@client, response.body[klass.singular_resource_name].merge(:association => instance_association))
             end
 

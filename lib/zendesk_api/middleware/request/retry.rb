@@ -17,7 +17,9 @@ module ZendeskAPI
 
         def call(env)
           original_env = env.dup
+          @logger.debug "(zendesk_api_client) Sending initial request from retry.rb"
           response = @app.call(env)
+          @logger.debug "(zendesk_api_client) Received response to initial request from retry.rb: #{response.env[:status]}"
 
           if ERROR_CODES.include?(response.env[:status])
             seconds_left = (response.env[:response_headers][:retry_after] || DEFAULT_RETRY_AFTER).to_i
@@ -31,7 +33,10 @@ module ZendeskAPI
 
             @logger.warn "" if @logger
 
-            @app.call(original_env)
+            @logger.debug "(zendesk_api_client) Sending retry request from retry.rb"
+            ret = @app.call(original_env)
+            @logger.debug "(zendesk_api_client) Received response to retry request from retry.rb"
+            ret
           else
             response
           end
