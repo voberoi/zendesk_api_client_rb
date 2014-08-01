@@ -16,9 +16,8 @@ module ZendeskAPI
         end
 
         def call(env)
-          original_env = env.dup
           @logger.info "(zendesk_api_client) Sending initial request from retry.rb"
-          response = @app.call(env)
+          response = retry_if_timeout(env)
           @logger.info "(zendesk_api_client) Received response to initial request from retry.rb: #{response.env[:status]}"
 
           if ERROR_CODES.include?(response.env[:status])
@@ -34,11 +33,30 @@ module ZendeskAPI
             @logger.warn "" if @logger
 
             @logger.info "(zendesk_api_client) Sending retry request from retry.rb"
-            ret = @app.call(original_env)
+            ret = retry_if_timeout(env)
             @logger.info "(zendesk_api_client) Received response to retry request from retry.rb: #{ret.env[:status]}"
             ret
           else
             response
+          end
+        end
+
+        def retry_if_timeout(env)
+          retries_left = 5
+
+          while true
+            begin
+              cloned_env = env.dup
+              return @app.call(cloned_env)
+            rescue Faraday::TimeoutError
+              @logger.info "(zendesk_api_client) Whoops! Rescued from a timeout."
+              if retries_left == 0
+                raise
+              else
+                @logger.info "(zendesk_api_client) Retrying timeouts #{retries_left} more times."
+                retries_left -= 1
+              end
+            end
           end
         end
       end
