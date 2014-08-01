@@ -18,7 +18,7 @@ module ZendeskAPI
         def call(env)
           original_env = env.dup
           @logger.info "(zendesk_api_client) Sending initial request from retry.rb"
-          response = @app.call(env)
+          response = retry_if_timeout(env)
           @logger.info "(zendesk_api_client) Received response to initial request from retry.rb: #{response.env[:status]}"
 
           if ERROR_CODES.include?(response.env[:status])
@@ -34,11 +34,29 @@ module ZendeskAPI
             @logger.warn "" if @logger
 
             @logger.info "(zendesk_api_client) Sending retry request from retry.rb"
-            ret = @app.call(original_env)
+            ret = retry_if_timeout(env)
             @logger.info "(zendesk_api_client) Received response to retry request from retry.rb: #{ret.env[:status]}"
             ret
           else
             response
+          end
+        end
+
+        def retry_if_timeout(env)
+          request_timed_out = true
+          retries_left = 5
+
+          while request_timed_out
+            begin
+              return @app.call(env)
+            rescue Timeout::Error
+              if retries_left == 0
+                raise
+              else
+                puts "(zendesk_api_client) Timed out! Retrying #{retries_left} more times."
+                retries_left -= 1
+              end
+            end
           end
         end
       end
